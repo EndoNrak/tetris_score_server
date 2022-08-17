@@ -18,7 +18,7 @@ def lambda_handler(event: dict, context):
             "error": {
                 "message": "including invalid fields in request",
                 "type": "ProtobufException",
-                "code": 501
+                "code": 502
             }            
         }
     return response
