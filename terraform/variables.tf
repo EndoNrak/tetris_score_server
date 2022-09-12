@@ -29,3 +29,13 @@ SQS
 */
 variable "sqs_score_evaluation_name" {}
 variable "sqs_score_evaluation_deadletter_name" {}
+
+/* 
+CICD
+*/
+variable "github_oidc_url" {}
+variable "github_repository" {}
+variable "oidc_role_name" {}
+variable "oidc_policy_name" {}
+variable "oidc_policy_arn" {}
+variable "oidc_sts_url" {}

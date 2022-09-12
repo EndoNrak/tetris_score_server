@@ -1,0 +1,79 @@
+name: callee terraform plan workflow
+on:
+  workflow_dispatch:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  tf_plan:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: authenticate to google cloud
+        uses: google-github-actions/auth@v0.4.0
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - name: checkout
+        uses: actions/checkout@v2.1.0
+
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v1.3.2
+        with:
+          terraform_version: ${{ inputs.TF_VERSION }}
+
+      - name: terraform init
+        id: init
+        working-directory: ${{ inputs.TF_WORK_DIR }}
+        run: |
+          terraform init
+
+      - name: terraform plan
+        id: plan
+        run: |
+          terraform plan -no-color
+        continue-on-error: true
+
+      # 1. PRのコメント欄に65536文字数制限がある
+      # 2. github-script もしくは GitHub Actions Workflow 内にも文字数制限がある
+      # よって、terraform plan/apply の結果を予め削る必要がある
+      # 大量に差分が出た場合は差分を見るのではなく plan/apply の成否を見たい
+      # これらを考慮して65000文字に制限する
+      - name: truncate terraform plan result
+        run: |
+          plan=$(cat <<'EOF'
+          ${{ format('{0}{1}', steps.plan.outputs.stdout, steps.plan.outputs.stderr) }}
+          EOF
+          )
+          echo "PLAN<<EOF" >> $GITHUB_ENV
+          echo "${plan}" | grep -v 'Refreshing state' | tail -c 65000 >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: create comment from plan result
+        uses: actions/github-script@0.9.0
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${ process.env.PLAN }
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ inputs.TF_WORK_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
