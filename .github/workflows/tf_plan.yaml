@@ -1,0 +1,30 @@
+name: callee terraform plan workflow
+on:
+  workflow_dispatch:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  tf_plan:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2.1.0
+
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v1.3.2
+
+      - name: terraform init
+        id: init
+        working-directory: terraform
+        run: |
+          terraform init
+
+      - name: terraform plan
+        id: plan
+        run: |
+          terraform plan -no-color
+        continue-on-error: true

@@ -29,3 +29,13 @@ SQS
 */
 sqs_score_evaluation_name            = "score-evaluation-queue"
 sqs_score_evaluation_deadletter_name = "score-evaluation-deadletter-queue"
+
+/* 
+CICD
+*/
+github_oidc_url   = "https://token.actions.githubusercontent.com"
+github_repository = "EndoNrak/tetris_score_server"
+oidc_role_name    = "GithubActionsOidcRole"
+oidc_policy_arn   = "arn:aws:iam::aws:policy/AdministratorAccess"
+oidc_policy_name  = "GithubActionsOidcPolicy"
+oidc_sts_url      = "sts.amazonaws.com"
